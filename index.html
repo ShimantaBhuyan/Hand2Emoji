@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture 2 Emoji</title>
+</head>
+
+<body>
+    <div>Hand Gesture 2 Emoji</div>
+    <button type="button" onclick="init()">Start</button>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+    <div id="emoji-container">
+        <!-- <p id="emojiViewer"></p> -->
+    </div>
+    <a href="https://icons8.com/icon">Icons from Icons8</a>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        // More API functions here:
+        // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+        const emojis = {
+            "crossedFingers": '🤞',
+            "ok": '👌',
+            "spock": '🖖',
+            "openHand": '🖐',
+            "yo": '🤘',
+            "frontFist": '✊',
+            "pointUp": '☝',
+            "thumbsUp": '👍',
+            "fistPunch": '👊',
+            "thumbsDown": '👎'
+        }
+
+        // load the emojis
+        const emojiContainer = document.getElementById("emoji-container");
+        Object.keys(emojis).map(name => {
+            const imgElement = document.createElement("img");
+            imgElement.className = "emojiPic";
+            imgElement.alt = `${name} emoji picture`;
+            imgElement.id = name;
+            imgElement.width = 96;
+            imgElement.height = 96;
+            imgElement.src = `./assets/${name}.png`;
+            imgElement.style.display = "none";
+            emojiContainer.appendChild(imgElement);
+        })
+
+        // const emojiViewer = document.getElementById("emojiViewer");
+
+        // the link to your model provided by Teachable Machine export panel
+        const URL = "./handGestureModel/";
+
+        let model, webcam, labelContainer, maxPredictions;
+
+        // Load the image model and setup the webcam
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            // load the model and metadata
+            // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+            // or files from your local hard drive
+            // Note: the pose library adds "tmImage" object to your window (window.tmImage)
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // Convenience function to setup a webcam
+            const flip = true; // whether to flip the webcam
+            webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+            await webcam.setup(); // request access to the webcam
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            // append elements to the DOM
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            // let video;
+            // await webcam.getWebcam().then(res => {
+            //     video = res;
+            //     video.play();
+            //     // video.style.display = "none";
+            //     console.log(res);
+            // });
+            // console.log(video);
+            // video.addEventListener('loadedmetadata', () => {
+            //     video.requestPictureInPicture()
+            //         .catch(console.error)
+            // });
+            // document.getElementById("webcam-container").appendChild(video);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) { // and class labels
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+
+        async function loop() {
+            webcam.update(); // update the webcam frame
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        // run the webcam image through the image model
+        async function predict() {
+            // predict can take in an image, video or canvas html element
+            const predictions = await model.predict(webcam.canvas);
+            // for (let i = 0; i < maxPredictions; i++) {
+            //     const classPrediction =
+            //         predictions[i].className + ": " + predictions[i].probability.toFixed(2);
+            //     labelContainer.childNodes[i].innerHTML = classPrediction;
+            // }
+
+            // display emoji based on gesture
+            predictions.map((prediction) => {
+                if (prediction.probability > 0.7) {
+                    // emojiViewer.innerText = emojis[prediction.className];
+                    Array.from(document.getElementsByClassName("emojiPic")).map(node => node.style.display = "none")
+                    document.getElementById(prediction.className).style.display = "block";
+                }
+            })
+        }
+    </script>
+
+</body>
+
+</html>
